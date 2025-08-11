@@ -511,28 +511,27 @@ def upload_file():
             file_ext = filename.rsplit('.', 1)[1].lower()
             
             if file_ext == 'mdb':
-                # Process MDB file
                 df_processed, excel_output_path = process_mdb_file(filepath)
             elif file_ext == 'xlsx':
-                # Process XLSX file
                 df_processed = process_xlsx_file(filepath)
-                # Create Excel output for consistency
                 excel_output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx').name
                 df_processed.to_excel(excel_output_path, index=False, engine='openpyxl')
             
-            # Generate diagrams
+            # Generate diagrams and save to files
             plots = generate_diagram_plots(df_processed)
+            plot_paths = {}
+            for plot_name, plot_data in plots.items():
+                plot_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{plot_name}_{filename.rsplit('.', 1)[0]}.png")
+                with open(plot_path, 'wb') as f:
+                    f.write(base64.b64decode(plot_data))
+                plot_paths[plot_name] = plot_path
             
             # Create a zip file with Excel and diagrams
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                # Add Excel file
                 zip_file.write(excel_output_path, f"processed_{filename.rsplit('.', 1)[0]}.xlsx")
-                
-                # Add diagram images
-                for plot_name, plot_data in plots.items():
-                    img_buffer = BytesIO(base64.b64decode(plot_data))
-                    zip_file.writestr(f"{plot_name}.png", img_buffer.getvalue())
+                for plot_name, plot_path in plot_paths.items():
+                    zip_file.write(plot_path, f"{plot_name}.png")
             
             zip_buffer.seek(0)
             
@@ -540,11 +539,10 @@ def upload_file():
             os.unlink(filepath)
             os.unlink(excel_output_path)
             
-            # Store plots in session for display
-            session['plots'] = plots
+            # Store plot paths in session
+            session['plot_paths'] = plot_paths
             session['processed_filename'] = filename.rsplit('.', 1)[0]
             
-            # Create a temporary file for the zip
             zip_path = tempfile.NamedTemporaryFile(delete=False, suffix='.zip').name
             with open(zip_path, 'wb') as f:
                 f.write(zip_buffer.getvalue())
@@ -560,6 +558,7 @@ def upload_file():
     else:
         flash('Invalid file type. Please upload a .mdb or .xlsx file.')
         return redirect(url_for('index'))
+        
 
 @app.route('/view_results')
 def view_results():
