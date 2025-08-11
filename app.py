@@ -565,12 +565,25 @@ def view_results():
     if not check_passcode():
         return redirect(url_for('login'))
     
-    plots = session.get('plots', {})
+    plot_paths = session.get('plot_paths', {})
     filename = session.get('processed_filename', 'Unknown')
     
-    if not plots:
+    if not plot_paths:
         flash('No results to display. Please upload a file first.')
         return redirect(url_for('index'))
+    
+    # Convert file paths to base64 for display
+    plots = {}
+    for plot_name, plot_path in plot_paths.items():
+        with open(plot_path, 'rb') as f:
+            plots[plot_name] = base64.b64encode(f.read()).decode()
+    
+    # Clean up plot files
+    for plot_path in plot_paths.values():
+        try:
+            os.unlink(plot_path)
+        except:
+            pass
     
     return render_template('results.html', plots=plots, filename=filename)
 if __name__ == '__main__':
