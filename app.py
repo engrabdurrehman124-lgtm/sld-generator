@@ -479,8 +479,10 @@ def generate_diagram_plots(df):
 
 def process_mdb_file(mdb_filepath):
     """Process the uploaded MDB file and return processed DataFrame and Excel file path"""
+    temp_files = []  # Track temporary files for cleanup
     try:
         sai_control_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
+        temp_files.append(sai_control_csv)
         result = subprocess.run(['mdb-export', mdb_filepath, 'SAI_Control'], 
                               stdout=open(sai_control_csv, 'w', encoding='utf-8'), 
                               stderr=subprocess.PIPE, text=True)
@@ -496,6 +498,7 @@ def process_mdb_file(mdb_filepath):
 
         for sheet in sheet_names:
             temp_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
+            temp_files.append(temp_csv)
             result = subprocess.run(['mdb-export', mdb_filepath, sheet], 
                                   stdout=open(temp_csv, 'w', encoding='utf-8'),
                                   stderr=subprocess.PIPE, text=True)
@@ -557,6 +560,7 @@ def process_mdb_file(mdb_filepath):
 
         try:
             capacitor_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
+            temp_files.append(capacitor_csv)
             result = subprocess.run(['mdb-export', mdb_filepath, 'InstCapacitors'], 
                                   stdout=open(capacitor_csv, 'w', encoding='utf-8'),
                                   stderr=subprocess.PIPE, text=True)
@@ -564,6 +568,7 @@ def process_mdb_file(mdb_filepath):
             if result.returncode == 0:
                 df_capacitors = pd.read_csv(capacitor_csv)
                 inst_section_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
+                temp_files.append(inst_section_csv)
                 result = subprocess.run(['mdb-export', mdb_filepath, 'InstSection'], 
                                       stdout=open(inst_section_csv, 'w', encoding='utf-8'),
                                       stderr=subprocess.PIPE, text=True)
@@ -607,18 +612,25 @@ def process_mdb_file(mdb_filepath):
         df_section = remove_lnode_rows(df_section)
 
         output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx').name
+        temp_files.append(output_path)
         df_section.to_excel(output_path, index=False, engine='openpyxl')
 
-        for temp_file in [sai_control_csv] + list(sheet_csv_paths.values()) + ([capacitor_csv, inst_section_csv] if 'capacitor_csv' in locals() and 'inst_section_csv' in locals() else []):
+        return df_section, output_path
+
+    except Exception as e:
+        logger.error(f"Error processing MDB file: {str(e)}")
+        raise
+    finally:
+        # Clean up temporary files
+        for temp_file in temp_files:
             try:
                 os.unlink(temp_file)
             except:
                 pass
 
-        return df_section, output_path
-
 def process_xlsx_file(xlsx_filepath):
     """Process the uploaded XLSX file and return processed DataFrame"""
+    temp_files = []  # Track temporary files for cleanup
     try:
         df_section = pd.read_excel(xlsx_filepath)
         
@@ -635,6 +647,7 @@ def process_xlsx_file(xlsx_filepath):
         df_section = remove_lnode_rows(df_section)
 
         output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx').name
+        temp_files.append(output_path)
         df_section.to_excel(output_path, index=False, engine='openpyxl')
 
         return df_section, output_path
@@ -642,6 +655,13 @@ def process_xlsx_file(xlsx_filepath):
     except Exception as e:
         logger.error(f"Error processing XLSX file: {str(e)}")
         raise
+    finally:
+        # Clean up temporary files
+        for temp_file in temp_files:
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
 
 @app.route('/')
 def index():
@@ -698,8 +718,10 @@ def upload_file():
             plots = generate_diagram_plots(df_processed)
             
             # Clean up temporary files
-            os.unlink(filepath)
-            os.unlink(excel_output_path)
+            try:
+                os.unlink(filepath)
+            except:
+                pass
             
             return render_template('results.html', plots=plots, filename=filename)
         
@@ -712,5 +734,5 @@ def upload_file():
         return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
+    port = int(os.environ.get('Key', 10000))
     app.run(host='0.0.0.0', port=port, debug=False)
