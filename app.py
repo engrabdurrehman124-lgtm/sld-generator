@@ -19,6 +19,9 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-to-random'  # Change this to a random secret key
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 app.config['UPLOAD_FOLDER'] = 'Uploads'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = True  # Use only over HTTPS in production
+app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # Session expires after 30 minutes of inactivity
 
 # Create uploads directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -293,7 +296,7 @@ def generate_diagram_plots(df):
         edges.append((from_node, to_node))
 
     # Generate base diagram
-    fig, ax = plt.subplots(figsize=(20, 16))
+    fig, ax = plt.subplots(figsize=(30, 24))  # Increased size for better resolution
     for from_node, to_node in edges:
         if from_node in node_positions and to_node in node_positions:
             x1, y1 = node_positions[from_node]
@@ -301,12 +304,12 @@ def generate_diagram_plots(df):
             ax.plot([x1, x2], [y1, y2], 'k-', linewidth=2)
 
     for node, (x, y) in node_positions.items():
-        ax.plot(x, y, 'o', color='lightblue', markersize=6, markeredgecolor='black')
-        ax.text(x, y - 2, node.split('_')[0], fontsize=8, ha='center', weight='bold')
+        ax.plot(x, y, 'o', color='lightblue', markersize=8, markeredgecolor='black')
+        ax.text(x, y - 2, node.split('_')[0], fontsize=10, ha='center', weight='bold')
 
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.set_aspect('equal')
-    ax.set_title("Base Logical Single-Line Diagram", fontsize=14, weight='bold')
+    ax.set_title("Base Logical Single-Line Diagram", fontsize=16, weight='bold')
     plt.tight_layout()
     
     buffer = BytesIO()
@@ -391,7 +394,7 @@ def generate_diagram_plots(df):
         logger.warning("Max iterations reached. Some crossings or overlaps may remain.")
 
     # Generate final extended diagram
-    fig, ax = plt.subplots(figsize=(20, 16))
+    fig, ax = plt.subplots(figsize=(30, 24))  # Increased size for better resolution
     for from_node, to_node in edges:
         if from_node in node_positions and to_node in node_positions:
             x1, y1 = node_positions[from_node]
@@ -399,12 +402,12 @@ def generate_diagram_plots(df):
             ax.plot([x1, x2], [y1, y2], 'k-', linewidth=2)
 
     for node, (x, y) in node_positions.items():
-        ax.plot(x, y, 'o', color='lightblue', markersize=6, markeredgecolor='black')
-        ax.text(x, y - 2, node.split('_')[0], fontsize=8, ha='center', weight='bold')
+        ax.plot(x, y, 'o', color='lightblue', markersize=8, markeredgecolor='black')
+        ax.text(x, y - 2, node.split('_')[0], fontsize=10, ha='center', weight='bold')
 
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.set_aspect('equal')
-    ax.set_title("Final Extended Diagram", fontsize=14, weight='bold')
+    ax.set_title("Final Extended Diagram", fontsize=16, weight='bold')
     plt.tight_layout()
     
     buffer = BytesIO()
@@ -414,7 +417,7 @@ def generate_diagram_plots(df):
     plt.close()
 
     # Generate labeled diagram
-    fig, ax = plt.subplots(figsize=(20, 16))
+    fig, ax = plt.subplots(figsize=(30, 24))  # Increased size for better resolution
     for _, row in df.iterrows():
         from_node = str(row['FromNodeId_Logical'])
         to_node = str(row['ToNodeId_Logical'])
@@ -440,30 +443,30 @@ def generate_diagram_plots(df):
         dx, dy = abs(x2 - x1), abs(y2 - y1)
 
         if dy > dx:
-            ax.text(label_x + 1.5, label_y, str(conductor), fontsize=6, color='blue', ha='center', weight='bold', rotation=90)
-            ax.text(label_x - 1.5, label_y, f"{length:.1f}m", fontsize=6, color='green', ha='center', rotation=90)
+            ax.text(label_x + 1.5, label_y, str(conductor), fontsize=8, color='blue', ha='center', weight='bold', rotation=90)
+            ax.text(label_x - 1.5, label_y, f"{length:.1f}m", fontsize=8, color='green', ha='center', rotation=90)
         else:
-            ax.text(label_x, label_y + 1.5, str(conductor), fontsize=6, color='blue', ha='center', weight='bold')
-            ax.text(label_x, label_y - 1.5, f"{length:.1f}m", fontsize=6, color='green', ha='center')
+            ax.text(label_x, label_y + 1.5, str(conductor), fontsize=8, color='blue', ha='center', weight='bold')
+            ax.text(label_x, label_y - 1.5, f"{length:.1f}m", fontsize=8, color='green', ha='center')
 
         if isinstance(description, str) and description.strip():
             dx, dy = x2 - x1, y2 - y1
             angle = np.degrees(np.arctan2(dy, dx))
             ax.plot(x2, y2, marker=(3, 0, angle + 90), markersize=12,
                     color='red', markerfacecolor='orange', markeredgewidth=2)
-            ax.text(x2 + 1, y2 + 1, description.strip(), fontsize=6, color='red', weight='bold')
+            ax.text(x2 + 1, y2 + 1, description.strip(), fontsize=8, color='red', weight='bold')
 
         if capacitor > 0:
             ax.plot(x1, y1, marker='s', markersize=8, color='purple', markerfacecolor='yellow', markeredgewidth=2)
-            ax.text(x1 + 1, y1 - 2, f"{capacitor:.0f}kVAR", fontsize=6, color='purple', weight='bold')
+            ax.text(x1 + 1, y1 - 2, f"{capacitor:.0f}kVAR", fontsize=8, color='purple', weight='bold')
 
     for node, (x, y) in node_positions.items():
-        ax.plot(x, y, 'o', color='lightblue', markersize=6, markeredgecolor='black')
-        ax.text(x, y - 2, node.split('_')[0], fontsize=8, ha='center', weight='bold')
+        ax.plot(x, y, 'o', color='lightblue', markersize=8, markeredgecolor='black')
+        ax.text(x, y - 2, node.split('_')[0], fontsize=10, ha='center', weight='bold')
 
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.set_aspect('equal')
-    ax.set_title("Complete Single-Line Diagram with Labels & Components", fontsize=14, weight='bold')
+    ax.set_title("Complete Single-Line Diagram with Labels & Components", fontsize=16, weight='bold')
     plt.tight_layout()
 
     buffer = BytesIO()
@@ -614,10 +617,6 @@ def process_mdb_file(mdb_filepath):
 
         return df_section, output_path
 
-    except Exception as e:
-        logger.error(f"Error processing MDB file: {str(e)}")
-        raise
-
 def process_xlsx_file(xlsx_filepath):
     """Process the uploaded XLSX file and return processed DataFrame"""
     try:
@@ -656,6 +655,7 @@ def login():
         entered_passcode = request.form.get('passcode')
         if entered_passcode == PASSCODE:
             session['authenticated'] = True
+            session.permanent = True  # Session expires after PERMANENT_SESSION_LIFETIME
             return redirect(url_for('index'))
         else:
             flash('Invalid passcode. Please try again.')
@@ -665,6 +665,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('authenticated', None)
+    flash('You have been logged out.')
     return redirect(url_for('login'))
 
 @app.route('/upload', methods=['POST'])
@@ -674,12 +675,12 @@ def upload_file():
     
     if 'file' not in request.files:
         flash('No file selected')
-        return redirect(request.url)
+        return redirect(url_for('index'))
     
     file = request.files['file']
     if file.filename == '':
         flash('No file selected')
-        return redirect(request.url)
+        return redirect(url_for('index'))
     
     if file and allowed_file(file.filename):
         try:
@@ -695,35 +696,12 @@ def upload_file():
                 df_processed, excel_output_path = process_xlsx_file(filepath)
             
             plots = generate_diagram_plots(df_processed)
-            plot_paths = {}
-            for plot_name, plot_data in plots.items():
-                plot_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{plot_name}_{filename.rsplit('.', 1)[0]}.png")
-                with open(plot_path, 'wb') as f:
-                    f.write(base64.b64decode(plot_data))
-                plot_paths[plot_name] = plot_path
             
-            zip_buffer = BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                zip_file.write(excel_output_path, f"processed_{filename.rsplit('.', 1)[0]}.xlsx")
-                zip_file.write(plot_paths['final_diagram'], "final_diagram.png")
-            
-            zip_buffer.seek(0)
-            
+            # Clean up temporary files
             os.unlink(filepath)
             os.unlink(excel_output_path)
-            for plot_path in plot_paths.values():
-                try:
-                    os.unlink(plot_path)
-                except:
-                    pass
             
-            zip_path = tempfile.NamedTemporaryFile(delete=False, suffix='.zip').name
-            with open(zip_path, 'wb') as f:
-                f.write(zip_buffer.getvalue())
-            
-            return send_file(zip_path, as_attachment=True, 
-                           download_name=f"SLD_Results_{filename.rsplit('.', 1)[0]}.zip",
-                           mimetype='application/zip')
+            return render_template('results.html', plots=plots, filename=filename)
         
         except Exception as e:
             flash(f'Error processing file: {str(e)}')
