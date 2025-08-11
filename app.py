@@ -467,7 +467,7 @@ def generate_diagram_plots(df):
     plt.tight_layout()
 
     buffer = BytesIO()
-    plt.savefig(buffer, format='png',knockout, dpi=300, bbox_inches='tight')
+    plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
     buffer.seek(0)
     plots['final_diagram'] = base64.b64encode(buffer.getvalue()).decode()
     plt.close()
@@ -477,13 +477,13 @@ def generate_diagram_plots(df):
 def process_mdb_file(mdb_filepath):
     """Process the uploaded MDB file and return processed DataFrame and Excel file path"""
     try:
-        sai_control_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
+        sai_control_csv = tempfile.NamedTemporaryFile(encoding='utf-8', delete=False, suffix='.csv').name
         result = subprocess.run(['mdb-export', mdb_filepath, 'SAI_Control'], 
-                              stdout open(sai_control_csv, 'w', encoding='utf-8'), 
+                              stdout=open(sai_control_csv, 'w', encoding='utf-8'), 
                               stderr=subprocess.PIPE, text=True)
         
         if result.returncode != 0:
-            raise Exception(f"Failed to export SAI_CONTROL table: {result.stderr}")
+            raise Exception(f"Failed to export SAI_Control table: {result.stderr}")
         
         df_sai = pd.read_csv(sai_control_csv)
         length_unit = df_sai.iloc[0, 2].strip() if not df_sai.empty else ''
