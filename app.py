@@ -477,7 +477,7 @@ def generate_diagram_plots(df):
 def process_mdb_file(mdb_filepath):
     """Process the uploaded MDB file and return processed DataFrame and Excel file path"""
     try:
-        sai_control_csv = tempfile.NamedTemporaryFile(encoding='utf-8', delete=False, suffix='.csv').name
+        sai_control_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
         result = subprocess.run(['mdb-export', mdb_filepath, 'SAI_Control'], 
                               stdout=open(sai_control_csv, 'w', encoding='utf-8'), 
                               stderr=subprocess.PIPE, text=True)
@@ -561,7 +561,13 @@ def process_mdb_file(mdb_filepath):
             if result.returncode == 0:
                 df_capacitors = pd.read_csv(capacitor_csv)
                 inst_section_csv = tempfile.NamedTemporaryFile(delete=False, suffix='.csv').name
-                subprocess.run(['mdb-export', mdb_filepath, 'InstSection'], stdout=open(inst_section_csv, 'w', encoding='utf-8'))
+                result = subprocess.run(['mdb-export', mdb_filepath, 'InstSection'], 
+                                      stdout=open(inst_section_csv, 'w', encoding='utf-8'),
+                                      stderr=subprocess.PIPE, text=True)
+                
+                if result.returncode != 0:
+                    raise Exception(f"Failed to export InstSection table: {result.stderr}")
+
                 df_inst_section = pd.read_csv(inst_section_csv)
 
                 df_capacitors = df_capacitors[df_capacitors.iloc[:, 8].notna()].copy()
@@ -600,7 +606,7 @@ def process_mdb_file(mdb_filepath):
         output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx').name
         df_section.to_excel(output_path, index=False, engine='openpyxl')
 
-        for temp_file in [sai_control_csv] + list(sheet_csv_paths.values()):
+        for temp_file in [sai_control_csv] + list(sheet_csv_paths.values()) + ([capacitor_csv, inst_section_csv] if 'capacitor_csv' in locals() and 'inst_section_csv' in locals() else []):
             try:
                 os.unlink(temp_file)
             except:
