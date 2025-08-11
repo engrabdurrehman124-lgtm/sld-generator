@@ -519,6 +519,12 @@ def process_mdb_file(mdb_filepath):
         if length_unit == 'English2':
             df_section['SectionLength_MUL'] = df_section['SectionLength_MUL'] / 3.2808
 
+        # Remove rows where PhaseConductorId is ANT, ant, WASP, or wasp (case-insensitive)
+        initial_count = len(df_section)
+        df_section = df_section[~df_section['PhaseConductorId'].str.lower().isin(['ant', 'wasp'])].reset_index(drop=True)
+        removed_count = initial_count - len(df_section)
+        logger.info(f"Removed {removed_count} rows with PhaseConductorId 'ANT' or 'WASP'.")
+
         df_section['SortKey'] = df_section.apply(sort_key, axis=1)
         df_section = df_section.sort_values(by='SortKey').drop(columns='SortKey').reset_index(drop=True)
 
@@ -636,6 +642,12 @@ def process_xlsx_file(xlsx_filepath):
         
         required_columns = ['FeederId', 'FromNodeId', 'ToNodeId', 'Description', 'PhaseConductorId', 'SectionLength_MUL']
         missing_columns = [col for col in required_columns if col not in df_section.columns]
+        
+        # Remove rows where PhaseConductorId is ANT, ant, WASP, or wasp (case-insensitive)
+        initial_count = len(df_section)
+        df_section = df_section[~df_section['PhaseConductorId'].str.lower().isin(['ant', 'wasp'])].reset_index(drop=True)
+        removed_count = initial_count - len(df_section)
+        logger.info(f"Removed {removed_count} rows with PhaseConductorId 'ANT' or 'WASP'.")
         
         if missing_columns:
             df_section = add_logical_numbering(df_section)
