@@ -92,35 +92,6 @@ def drop_latlon_columns(df):
     df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
     return df
 
-def shift_transformers_to_parent(df):
-    """Shift transformer descriptions to parent rows"""
-    for idx, row in df.iterrows():
-        desc = str(row['Description']).strip()
-        from_node = row['FromNodeId_Logical']
-        phase_conductor = str(row['PhaseConductorId']).strip()
-        section_length = float(row['SectionLength_MUL'])
-
-        if desc and phase_conductor.upper() == "GOPHER" and abs(section_length - 1.2192) < 0.001:
-            parent_rows = df[df['ToNodeId_Logical'] == from_node]
-            if not parent_rows.empty:
-                parent_idx = parent_rows.index[0]
-                df.at[parent_idx, 'Description'] = desc
-                df.at[idx, 'Description'] = ''
-    return df
-
-def remove_redundant_gopher_rows(df):
-    """Remove redundant GOPHER rows"""
-    initial_count = len(df)
-    condition = (
-        (df['PhaseConductorId'].str.upper() == 'GOPHER') &
-        (abs(df['SectionLength_MUL'] - 1.2192) < 0.001) &
-        (df['Description'].astype(str).str.strip() == '')
-    )
-    df_cleaned = df[~condition].reset_index(drop=True)
-    removed_count = initial_count - len(df_cleaned)
-    logger.info(f"Removed {removed_count} redundant GOPHER rows.")
-    return df_cleaned
-
 def shift_description_chain(df):
     """Shift descriptions backward up the chain"""
     to_node_map = df.set_index('ToNodeId_Logical').to_dict()['Description']
@@ -612,8 +583,6 @@ def process_mdb_file(mdb_filepath):
 
         df_section = add_logical_numbering(df_section)
         df_section = drop_latlon_columns(df_section)
-        df_section = shift_transformers_to_parent(df_section)
-        df_section = remove_redundant_gopher_rows(df_section)
         df_section = shift_description_chain(df_section)
         df_section = remove_lnode_rows(df_section)
 
