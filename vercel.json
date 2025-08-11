@@ -1,19 +1,9 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "Dockerfile",
-      "use": "@vercel/docker"
-    }
+    { "src": "api/index.py", "use": "@vercel/python" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
-  "env": {
-    "FLASK_APP": "app:app",
-    "PORT": "8080"
-  }
+    { "src": "/(.*)", "dest": "api/index.py" }
+  ]
 }
